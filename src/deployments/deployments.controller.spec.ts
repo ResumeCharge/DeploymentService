@@ -2,7 +2,11 @@ import { Test } from '@nestjs/testing';
 import { DeploymentsController } from './deployments.controller';
 import { DeploymentsService } from './deployments.service';
 import { HttpModule, HttpService } from '@nestjs/axios';
-import { BadRequestException, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { TemplatesService } from '../templates/templates.service';
 import { S3Service } from '../s3-service/s3.service';
 import { connect, Connection, Model } from 'mongoose';
@@ -118,7 +122,7 @@ describe('DeploymentsController', () => {
 
   afterEach(async () => {
     await clearDb();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   afterAll(async () => {
@@ -135,12 +139,16 @@ describe('DeploymentsController', () => {
     jest.spyOn(s3Service, 'uploadImageToBucket').mockRejectedValue(() => {
       throw new Error('BAD!');
     });
+    jest
+      .spyOn(deploymentService, 'userHasActiveDeployment')
+      .mockImplementation(async () => false);
     await expect(
       deploymentsController.create(
         { userId: '123', token: '123' },
         newDeployment,
       ),
-    ).rejects.toThrow(Error);
+    ).rejects.toThrow(InternalServerErrorException);
+    expect(s3Service.uploadImageToBucket).toBeCalled();
   });
 
   it('should throw an exception when it fails to upload the resume', async () => {
@@ -153,12 +161,15 @@ describe('DeploymentsController', () => {
     jest.spyOn(s3Service, 'uploadPDFToBucket').mockImplementation(() => {
       throw new Error('BAD!');
     });
+    jest
+      .spyOn(deploymentService, 'userHasActiveDeployment')
+      .mockImplementation(async () => false);
     await expect(
       deploymentsController.create(
         { userId: '123', token: '123' },
         newDeployment,
       ),
-    ).rejects.toThrow(Error);
+    ).rejects.toThrow(InternalServerErrorException);
     expect(s3Service.uploadImageToBucket).toBeCalled();
   });
 

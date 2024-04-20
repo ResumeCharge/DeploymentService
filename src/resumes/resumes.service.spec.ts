@@ -52,7 +52,7 @@ describe('ResumesService', () => {
   });
 
   afterEach(async () => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
     await clearDb();
   });
 
