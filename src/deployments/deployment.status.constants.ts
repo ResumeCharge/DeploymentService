@@ -1,0 +1,9 @@
+export const PENDING = 'PENDING';
+export const PROCESSING = 'PROCESSING';
+export const SUCCESSFUL = 'SUCCESSFUL';
+export const PENDING_RETRY = 'PENDING_RETRY';
+export const SENT_TO_GITHUB = 'SENT_TO_GITHUB';
+export const SENT_TO_AWS = 'SENT_TO_AWS';
+export const FAILED = 'FAILED';
+export const CANCELLATION_REQUESTED = 'CANCELLATION_REQUESTED';
+export const CANCELLED = 'CANCELLED';
