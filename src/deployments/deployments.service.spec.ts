@@ -90,7 +90,7 @@ describe('DeploymentService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
     clearCollection('deployments');
   });
 

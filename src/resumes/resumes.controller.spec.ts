@@ -53,7 +53,7 @@ describe('ResumesController', () => {
 
   afterEach(async () => {
     await clearDb();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   afterAll(async () => {

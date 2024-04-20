@@ -13,7 +13,10 @@ import {
   PROCESSING,
   SENT_TO_GITHUB,
 } from './deployment.status.constants';
-import { PendingDeployment, PendingDeploymentDocument } from './schemas/pendingDeployment.schema';
+import {
+  PendingDeployment,
+  PendingDeploymentDocument,
+} from './schemas/pendingDeployment.schema';
 import { PendingDeploymentDto } from './dto/create-pending-deployment.dto';
 import { ObjectId } from 'mongodb';
 import { User } from '../users/users.interfaces';
@@ -28,8 +31,7 @@ export class DeploymentsService {
     private resumesService: ResumesService,
     private templatesService: TemplatesService,
     private readonly logger: Logger,
-  ) {
-  }
+  ) {}
 
   /*Business logic functions*/
 
@@ -128,7 +130,21 @@ export class DeploymentsService {
 
   async cancelDeployment(id: string) {
     const deployment = await this.deploymentModel.findOne({ _id: id }).exec();
+    const pendingDeployment = await this.pendingDeploymentModel
+      .findOne({ _id: id })
+      .exec();
+    /*GeneratorService is responsible for cancelling deployments, it requires a pending deployment entry.
+    Backfill the pending deployment if it goes missing for some reason*/
+    if (!pendingDeployment) {
+      await this.createAndInsertNewPendingDeployment({ _id: deployment._id });
+    }
     deployment.cancellationRequested = true;
-    await deployment.save();
+    return await deployment.save();
+  }
+
+  private async createAndInsertNewPendingDeployment(
+    pendingDeploymentDTO: PendingDeploymentDto,
+  ) {
+    return await new this.pendingDeploymentModel(pendingDeploymentDTO).save();
   }
 }
