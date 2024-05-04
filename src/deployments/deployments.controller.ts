@@ -1,11 +1,9 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
   Header,
-  InternalServerErrorException,
   Logger,
   Param,
   Patch,
@@ -21,25 +19,13 @@ import {
   Authorization,
   AuthUser,
 } from '../auth/decorators/authorization.decorator';
-import { S3Service } from '../s3-service/s3.service';
 import { GeneratorServiceGuard } from '../resource-guards/generator-service-guard/generator-service-guard';
-import { UsersService } from '../users/users.service';
-import { User } from '../users/users.interfaces';
 import { Deployment } from './schemas/deployment.schema';
-import {
-  DEPLOYMENT_ERROR_CONCURRENT_DEPLOYMENT,
-  DEPLOYMENT_ERROR_DEPLOYMENT_ID_USER_ID_DO_NOT_MATCH,
-  DEPLOYMENT_ERROR_NOT_GITHUB_USERNAME,
-  DEPLOYMENT_ERROR_USER_INACTIVE,
-  DEPLOYMENT_ERROR_WEBSITE_IDENTIFIER_MISSING,
-} from '../app.constants';
 
 @Controller('deployments')
 export class DeploymentsController {
   constructor(
     private readonly deploymentsService: DeploymentsService,
-    private s3Service: S3Service,
-    private userService: UsersService,
     private readonly logger: Logger,
   ) {}
 
@@ -55,10 +41,7 @@ export class DeploymentsController {
        templateId: ${deploymentDto.templateId},
        deploymentProvider: ${deploymentDto.deploymentProvider}`,
     );
-    const user = await this.userService.getUser(authUser);
-    await this.isValidRequest(deploymentDto, user);
-    await this.processDeploymentDto(deploymentDto);
-    return await this.deploymentsService.create(deploymentDto, user);
+    return await this.deploymentsService.create(deploymentDto, authUser);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -110,72 +93,5 @@ export class DeploymentsController {
       `Received cancel deployment request for deploymentId: ${id}`,
     );
     return this.deploymentsService.cancelDeployment(id);
-  }
-
-  private isValidRequest = async (
-    createDeploymentDTO: CreateDeploymentDto,
-    user: User,
-  ) => {
-    if (createDeploymentDTO.userId !== user.userId) {
-      throw new BadRequestException(
-        DEPLOYMENT_ERROR_DEPLOYMENT_ID_USER_ID_DO_NOT_MATCH,
-      );
-    }
-    if (!DeploymentsController.isUserActive(user)) {
-      throw new BadRequestException(DEPLOYMENT_ERROR_USER_INACTIVE);
-    }
-    if (createDeploymentDTO.deploymentProvider === 'AWS') {
-      const hasValidWebsiteIdentifier = Boolean(user.websiteIdentifier);
-      if (!hasValidWebsiteIdentifier) {
-        this.logger.error(
-          'User does not have websiteIdentifier set, unable to proceed with deployment',
-        );
-        throw new BadRequestException(
-          DEPLOYMENT_ERROR_WEBSITE_IDENTIFIER_MISSING,
-        );
-      }
-    }
-    if (await this.deploymentsService.userHasActiveDeployment(user.userId)) {
-      throw new BadRequestException(DEPLOYMENT_ERROR_CONCURRENT_DEPLOYMENT);
-    }
-    if (
-      createDeploymentDTO.deploymentProvider.toLowerCase() === 'github' &&
-      !user.githubUserName
-    ) {
-      throw new BadRequestException(DEPLOYMENT_ERROR_NOT_GITHUB_USERNAME);
-    }
-  };
-
-  private static isUserActive(userDatabaseRecord): boolean {
-    return userDatabaseRecord.isActive;
-  }
-
-  private async processDeploymentDto(deploymentDto: CreateDeploymentDto) {
-    if (deploymentDto.websiteDetails.profilePicture) {
-      try {
-        deploymentDto.websiteDetails.profilePictureS3URI =
-          await this.s3Service.uploadImageToBucket(
-            deploymentDto.websiteDetails.profilePicture,
-            deploymentDto.userId,
-          );
-        deploymentDto.websiteDetails.profilePicture = null;
-      } catch (err) {
-        this.logger.error('Error trying to upload profile picture to S3', err);
-        throw new InternalServerErrorException('Unable to upload image');
-      }
-    }
-    if (deploymentDto.websiteDetails.resumeDocument) {
-      try {
-        deploymentDto.websiteDetails.resumeS3URI =
-          await this.s3Service.uploadPDFToBucket(
-            deploymentDto.websiteDetails.resumeDocument,
-            deploymentDto.userId,
-          );
-        deploymentDto.websiteDetails.resumeDocument = null;
-      } catch (err) {
-        this.logger.error('Error trying to upload resume to S3', err);
-        throw new InternalServerErrorException('Unable to upload resume');
-      }
-    }
   }
 }
