@@ -290,9 +290,9 @@ describe('DeploymentsController', () => {
     jest
       .spyOn(s3Service, 'uploadPDFToBucket')
       .mockImplementation(async () => 's3Uri');
-    jest
-      .spyOn(deploymentService, 'create')
-      .mockImplementation(async () => null);
+    jest.spyOn(deploymentService, 'create').mockImplementation(async () => {
+      throw new BadRequestException('');
+    });
     await expect(
       deploymentsController.create(
         { userId: '123', token: '123' },

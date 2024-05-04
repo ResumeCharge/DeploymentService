@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { UpdateDeploymentDto } from './dto/update-deployment.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -20,6 +25,21 @@ import {
 import { PendingDeploymentDto } from './dto/create-pending-deployment.dto';
 import { ObjectId } from 'mongodb';
 import { User } from '../users/users.interfaces';
+import { S3Service } from '../s3-service/s3.service';
+import { AuthUser } from '../auth/decorators/authorization.decorator';
+import { UsersService } from '../users/users.service';
+import {
+  DEPLOYMENT_ERROR_CONCURRENT_DEPLOYMENT,
+  DEPLOYMENT_ERROR_DEPLOYMENT_ID_USER_ID_DO_NOT_MATCH,
+  DEPLOYMENT_ERROR_NOT_GITHUB_USERNAME,
+  DEPLOYMENT_ERROR_USER_INACTIVE,
+  DEPLOYMENT_ERROR_WEBSITE_IDENTIFIER_MISSING,
+} from '../app.constants';
+
+enum ITEM_TYPE {
+  IMAGE,
+  PDF,
+}
 
 @Injectable()
 export class DeploymentsService {
@@ -30,6 +50,8 @@ export class DeploymentsService {
     private pendingDeploymentModel: Model<PendingDeploymentDocument>,
     private resumesService: ResumesService,
     private templatesService: TemplatesService,
+    private readonly s3Service: S3Service,
+    private readonly userService: UsersService,
     private readonly logger: Logger,
   ) {}
 
@@ -54,8 +76,11 @@ export class DeploymentsService {
 
   async create(
     createDeploymentDto: CreateDeploymentDto,
-    user: User,
+    authUser: AuthUser,
   ): Promise<Deployment> {
+    const user = await this.userService.getUser(authUser);
+    await this.isValidRequest(createDeploymentDto, user);
+    await this.uploadArtifactsToS3(createDeploymentDto);
     const createdDeployment = new this.deploymentModel(createDeploymentDto);
     const template = await this.templatesService.findOne(
       createdDeployment.templateId,
@@ -88,12 +113,11 @@ export class DeploymentsService {
   }
 
   async findAllForUserId(userId: string) {
-    const deployments = await this.deploymentModel
+    return await this.deploymentModel
       .find({ userId: userId })
       .sort({ createdAt: -1 })
       .limit(5)
       .exec();
-    return deployments;
   }
 
   async updateDeploymentStatus(
@@ -146,5 +170,73 @@ export class DeploymentsService {
     pendingDeploymentDTO: PendingDeploymentDto,
   ) {
     return await new this.pendingDeploymentModel(pendingDeploymentDTO).save();
+  }
+
+  private isValidRequest = async (
+    createDeploymentDTO: CreateDeploymentDto,
+    user: User,
+  ) => {
+    const deploymentProvider =
+      createDeploymentDTO.deploymentProvider.toLowerCase();
+    if (createDeploymentDTO.userId !== user.userId) {
+      throw new BadRequestException(
+        DEPLOYMENT_ERROR_DEPLOYMENT_ID_USER_ID_DO_NOT_MATCH,
+      );
+    }
+    if (!user.isActive) {
+      throw new BadRequestException(DEPLOYMENT_ERROR_USER_INACTIVE);
+    }
+    if (deploymentProvider === 'aws' && !user.websiteIdentifier) {
+      this.logger.error(
+        'User does not have websiteIdentifier set, unable to proceed with deployment',
+      );
+      throw new BadRequestException(
+        DEPLOYMENT_ERROR_WEBSITE_IDENTIFIER_MISSING,
+      );
+    }
+    if (await this.userHasActiveDeployment(user.userId)) {
+      throw new BadRequestException(DEPLOYMENT_ERROR_CONCURRENT_DEPLOYMENT);
+    }
+    if (deploymentProvider === 'github' && !user.githubUserName) {
+      throw new BadRequestException(DEPLOYMENT_ERROR_NOT_GITHUB_USERNAME);
+    }
+  };
+
+  private async uploadArtifactsToS3(deploymentDto: CreateDeploymentDto) {
+    const userId = deploymentDto.userId;
+    const profilePicture = deploymentDto.websiteDetails.profilePicture;
+    const resumeDocument = deploymentDto.websiteDetails.resumeDocument;
+    if (deploymentDto.websiteDetails.profilePicture) {
+      deploymentDto.websiteDetails.profilePictureS3URI =
+        await this.uploadItemToS3(profilePicture, userId, ITEM_TYPE.IMAGE);
+      deploymentDto.websiteDetails.profilePicture = null;
+    }
+    if (deploymentDto.websiteDetails.resumeDocument) {
+      deploymentDto.websiteDetails.resumeS3URI = await this.uploadItemToS3(
+        resumeDocument,
+        userId,
+        ITEM_TYPE.PDF,
+      );
+      deploymentDto.websiteDetails.resumeDocument = null;
+    }
+  }
+
+  private async uploadItemToS3(
+    item: string,
+    userId: string,
+    itemType: ITEM_TYPE,
+  ): Promise<string> {
+    try {
+      if (itemType === ITEM_TYPE.IMAGE) {
+        return await this.s3Service.uploadImageToBucket(item, userId);
+      } else if (itemType === ITEM_TYPE.PDF) {
+        return await this.s3Service.uploadPDFToBucket(item, userId);
+      } else {
+        throw new InternalServerErrorException('Unable to upload item to S3');
+      }
+    } catch (err) {
+      this.logger.error('Error trying to upload artifact to S3', err);
+      throw new InternalServerErrorException('Unable to upload artifact to S3');
+    }
   }
 }
