@@ -19,3 +19,6 @@ export const DEPLOYMENT_ERROR_SAVE_RESUME_USER_TOO_MANY_RESUMES =
 
 export const DEPLOYMENT_ERROR_NOT_GITHUB_USERNAME =
   'DEPLOYMENT_ERROR_6: Cannot create deployment for GitHub, no GitHub username';
+
+export const DEPLOYMENT_ERROR_RATE_LIMIT =
+  'DEPLOYMENT_ERROR_7: Cannot create deployment, exceed rate limit';

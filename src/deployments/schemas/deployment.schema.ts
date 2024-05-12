@@ -9,7 +9,7 @@ export type DeploymentDocument = Deployment & Document;
 
 @Schema({ optimisticConcurrency: true })
 export class Deployment {
-  @Prop({ default: Date.now })
+  @Prop({ default: Date.now, index: true, unique: false, sparse: false })
   createdAt: number;
   @Prop({ default: Date.now })
   lastUpdatedAt: number;

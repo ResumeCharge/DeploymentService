@@ -15,7 +15,10 @@ import {
 } from '../templates/schemas/websiteTemplate.schema';
 import { Resume, ResumeSchema } from '../resumes/schemas/resume.schema';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DeploymentsService } from './deployments.service';
+import {
+  DeploymentsService,
+  MAX_DEPLOYMENTS_IN_RATE_LIMIT,
+} from './deployments.service';
 import { Logger } from '@nestjs/common';
 import { ResumesService } from '../resumes/resumes.service';
 import { ConfigService } from '@nestjs/config';
@@ -182,6 +185,32 @@ describe('DeploymentService', () => {
     deployment2.status = SUCCESSFUL;
     await expect(deployment2.save()).rejects.toThrow(Error);
   });
+
+  it('should throw an exception of the user tries to create more deployments than the rate limit', async () => {
+    for (let i = 0; i < MAX_DEPLOYMENTS_IN_RATE_LIMIT; i++) {
+      await insertSuccessfulDeployment();
+    }
+    const userHasExceededRateLimit =
+      await deploymentService.userHasExceededDeploymentRateLimit('123');
+    expect(userHasExceededRateLimit).toBeTruthy();
+  });
+
+  it('should let the user create a deployment if they are below the rate limit', async () => {
+    for (let i = 0; i < MAX_DEPLOYMENTS_IN_RATE_LIMIT - 1; i++) {
+      await insertSuccessfulDeployment();
+    }
+    const userHasExceededRateLimit =
+      await deploymentService.userHasExceededDeploymentRateLimit('123');
+    expect(userHasExceededRateLimit).not.toBeTruthy();
+  });
+
+  const insertSuccessfulDeployment = async () => {
+    const deployment = await deploymentModel.create(newDeployment);
+    await deploymentModel.updateOne(
+      { _id: deployment._id },
+      { status: SUCCESSFUL },
+    );
+  };
 
   const newDeployment: CreateDeploymentDto = {
     userId: '123',
