@@ -45,6 +45,7 @@ enum ITEM_TYPE {
 const RATE_LIMIT_PERIOD_DAYS = 1;
 export const MAX_DEPLOYMENTS_IN_RATE_LIMIT = 10;
 
+
 @Injectable()
 export class DeploymentsService {
   constructor(
@@ -225,7 +226,6 @@ export class DeploymentsService {
       .exec();
     return deploymentsInRateLimitPeriod.length >= MAX_DEPLOYMENTS_IN_RATE_LIMIT;
   }
-
   private async uploadArtifactsToS3(deploymentDto: CreateDeploymentDto) {
     const userId = deploymentDto.userId;
     const profilePicture = deploymentDto.websiteDetails.profilePicture;
