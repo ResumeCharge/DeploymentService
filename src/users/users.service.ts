@@ -10,7 +10,7 @@ import { AuthUser } from '../auth/decorators/authorization.decorator';
 import { User } from './users.interfaces';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { ConfigService } from '@nestjs/config';
-import { USER_SERVICE_HOST } from '../app.constants';
+import { USER_SERVICE_HOST, USER_SERVICE_PORT } from '../app.constants';
 
 @Injectable()
 export class UsersService {
@@ -100,6 +100,7 @@ export class UsersService {
       USER_SERVICE_HOST,
       'localhost',
     );
-    return `http://${userServiceHost}/api/users`;
+    const userServicePort = this.configService.get(USER_SERVICE_PORT, '3002');
+    return `http://${userServiceHost}:${userServicePort}/api/users`;
   };
 }
