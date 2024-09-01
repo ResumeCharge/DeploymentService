@@ -38,6 +38,7 @@ import {
   SUCCESSFUL,
 } from './deployment.status.constants';
 import { StaticAssetsService } from '../static-assets/static-assets.service';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 describe('DeploymentService', () => {
   let deploymentService: DeploymentsService;
@@ -62,7 +63,6 @@ describe('DeploymentService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DeploymentsService,
-        Logger,
         TemplatesService,
         StaticAssetsService,
         ResumesService,
@@ -83,6 +83,10 @@ describe('DeploymentService', () => {
         {
           provide: getModelToken(WebsiteTemplate.name),
           useValue: websiteTemplateModel,
+        },
+        {
+          provide: WINSTON_MODULE_NEST_PROVIDER,
+          useValue: { log: jest.fn() },
         },
       ],
       imports: [HttpModule],

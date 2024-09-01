@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
+  LoggerService,
 } from '@nestjs/common';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { UpdateDeploymentDto } from './dto/update-deployment.dto';
@@ -32,6 +34,7 @@ import {
   DEPLOYMENT_ERROR_NOT_GITHUB_USERNAME,
 } from '../app.constants';
 import { StaticAssetsService } from '../static-assets/static-assets.service';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 enum ITEM_TYPE {
   IMAGE,
@@ -51,7 +54,8 @@ export class DeploymentsService {
     private resumesService: ResumesService,
     private templatesService: TemplatesService,
     private readonly userService: UsersService,
-    private readonly logger: Logger,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
     private readonly staticAssetsService: StaticAssetsService,
   ) {}
 

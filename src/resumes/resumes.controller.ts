@@ -3,7 +3,9 @@ import {
   Controller,
   Delete,
   Get,
+  Inject,
   Logger,
+  LoggerService,
   NotFoundException,
   Param,
   Patch,
@@ -14,13 +16,15 @@ import { CreateResumeDto } from './dto/create-resume.dto';
 import { UpdateResumeDto } from './dto/update-resume.dto';
 import { Resource } from '../auth/decorators/resource.decorator';
 import { ResourceId } from '../auth/decorators/resourceId.decorator';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 @Resource('Resumes')
 @Controller('resumes')
 export class ResumesController {
   constructor(
     private readonly resumesService: ResumesService,
-    private readonly logger: Logger,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
   ) {}
 
   @Post()

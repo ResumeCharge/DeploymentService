@@ -4,7 +4,9 @@ import {
   Delete,
   Get,
   Header,
+  Inject,
   Logger,
+  LoggerService,
   Param,
   Patch,
   Post,
@@ -17,12 +19,14 @@ import {
   AuthUser,
 } from '../auth/decorators/authorization.decorator';
 import { Deployment } from './schemas/deployment.schema';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 @Controller('deployments')
 export class DeploymentsController {
   constructor(
     private readonly deploymentsService: DeploymentsService,
-    private readonly logger: Logger,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
   ) {}
 
   @Post()

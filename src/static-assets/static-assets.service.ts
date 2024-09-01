@@ -1,18 +1,22 @@
 import {
+  Inject,
   Injectable,
   InternalServerErrorException,
   Logger,
+  LoggerService,
 } from '@nestjs/common';
 import { STATIC_ASSETS_DIRECTORY } from '../app.constants';
 import fs from 'fs';
 import { ConfigService } from '@nestjs/config';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 @Injectable()
 export class StaticAssetsService {
   BASE_64_REGEX = /^data.*;base64,/;
 
   constructor(
-    private readonly logger: Logger,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
     private readonly configService: ConfigService,
   ) {}
 

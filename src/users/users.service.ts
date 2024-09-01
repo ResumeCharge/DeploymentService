@@ -1,17 +1,22 @@
 import { firstValueFrom } from 'rxjs';
 import { USER_SERVICE_ENDPOINT } from '../app.constants';
 import {
+  Inject,
   Injectable,
   InternalServerErrorException,
-  Logger,
+  LoggerService,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { AuthUser } from '../auth/decorators/authorization.decorator';
 import { User } from './users.interfaces';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly logger: Logger) {}
+  constructor(
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
+  ) {}
 
   getUser = async (authUser: AuthUser): Promise<User> => {
     this.logger.log(`Attempting to getUser with Id: ${authUser.userId}`);

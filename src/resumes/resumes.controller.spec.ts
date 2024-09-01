@@ -15,6 +15,7 @@ import { UsersService } from '../users/users.service';
 import { UpdateResumeDto } from './dto/update-resume.dto';
 import { expect } from '@jest/globals';
 import { Logger, NotFoundException } from '@nestjs/common';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 describe('ResumesController', () => {
   let resumesController: ResumesController;
@@ -30,10 +31,13 @@ describe('ResumesController', () => {
       controllers: [ResumesController],
       providers: [
         ResumesService,
-        Logger,
         {
           provide: getModelToken(Resume.name),
           useValue: resumeModel,
+        },
+        {
+          provide: WINSTON_MODULE_NEST_PROVIDER,
+          useValue: { log: jest.fn() },
         },
       ],
       imports: [HttpModule],

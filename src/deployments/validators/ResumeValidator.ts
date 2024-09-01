@@ -4,15 +4,17 @@ import {
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { ResumesService } from '../../resumes/resumes.service';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, LoggerService } from '@nestjs/common';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 @Injectable()
 @ValidatorConstraint({ name: 'resumeValidator', async: false })
 export class ResumeValidator implements ValidatorConstraintInterface {
-  private readonly logger: Logger;
-  constructor(private resumeService: ResumesService) {
-    this.logger = new Logger();
-  }
+  constructor(
+    private resumeService: ResumesService,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
+  ) {}
   defaultMessage(): string {
     return 'Resume ID not found!';
   }

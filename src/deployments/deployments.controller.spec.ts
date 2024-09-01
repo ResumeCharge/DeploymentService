@@ -38,6 +38,7 @@ import {
 } from './schemas/pendingDeployment.schema';
 import { User } from '../users/users.interfaces';
 import { StaticAssetsService } from '../static-assets/static-assets.service';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 describe('DeploymentsController', () => {
   let deploymentsController: DeploymentsController;
@@ -69,7 +70,6 @@ describe('DeploymentsController', () => {
       controllers: [DeploymentsController],
       providers: [
         DeploymentsService,
-        Logger,
         TemplatesService,
         StaticAssetsService,
         ResumesService,
@@ -90,6 +90,10 @@ describe('DeploymentsController', () => {
         {
           provide: getModelToken(PendingDeployment.name),
           useValue: pendingDeploymentModel,
+        },
+        {
+          provide: WINSTON_MODULE_NEST_PROVIDER,
+          useValue: { log: jest.fn(), error: jest.fn() },
         },
       ],
       imports: [HttpModule],
