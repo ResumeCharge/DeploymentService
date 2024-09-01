@@ -21,6 +21,8 @@ import { S3Module } from './s3-service/s3.module';
 import { UsersModule } from './users/users.module';
 import { AppController } from './app.controller';
 
+const ENV = process.env.NODE_ENV;
+
 @Module({
   imports: [
     DeploymentsModule,
@@ -31,7 +33,13 @@ import { AppController } from './app.controller';
       }),
       inject: [ConfigService],
     }),
-    ConfigModule.forRoot({ envFilePath: '.development.env' }),
+    ConfigModule.forRoot({
+      envFilePath: [
+        '.env',
+        `.env.${ENV != null ? ENV.toLowerCase() : 'development'}`,
+      ],
+      isGlobal: true,
+    }),
     ResumesModule,
     TemplatesModule,
     AuthModule,
