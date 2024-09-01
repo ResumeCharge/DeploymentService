@@ -6,7 +6,6 @@ import { PORT } from './app.constants';
 import { useContainer } from 'class-validator';
 import { HttpErrorFilter } from './middleware/HttpErrorFilter';
 import * as bodyParser from 'body-parser';
-import 'winston-daily-rotate-file';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 async function bootstrap() {

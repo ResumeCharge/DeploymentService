@@ -19,6 +19,7 @@ import {
   utilities as nestWinstonModuleUtilities,
   WinstonModule,
 } from 'nest-winston';
+import 'winston-daily-rotate-file';
 
 const ENV = process.env.NODE_ENV;
 
