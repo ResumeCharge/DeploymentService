@@ -19,7 +19,7 @@ import {
 import { ResumesModule } from '../resumes/resumes.module';
 import { TemplatesModule } from '../templates/templates.module';
 import { UsersModule } from '../users/users.module';
-import { S3Module } from '../s3-service/s3.module';
+import { StaticAssetsModule } from '../static-assets/static-assets.module';
 
 @Module({
   controllers: [DeploymentsController],
@@ -27,10 +27,10 @@ import { S3Module } from '../s3-service/s3.module';
   imports: [
     ConfigModule,
     HttpModule,
-    S3Module,
     UsersModule,
     ResumesModule,
     TemplatesModule,
+    StaticAssetsModule,
     MongooseModule.forFeature([
       { name: Deployment.name, schema: DeploymentSchema },
     ]),

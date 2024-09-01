@@ -25,13 +25,13 @@ import {
 import { PendingDeploymentDto } from './dto/create-pending-deployment.dto';
 import { ObjectId } from 'mongodb';
 import { User } from '../users/users.interfaces';
-import { S3Service } from '../s3-service/s3.service';
 import { AuthUser } from '../auth/decorators/authorization.decorator';
 import { UsersService } from '../users/users.service';
 import {
   DEPLOYMENT_ERROR_CONCURRENT_DEPLOYMENT,
   DEPLOYMENT_ERROR_NOT_GITHUB_USERNAME,
 } from '../app.constants';
+import { StaticAssetsService } from '../static-assets/static-assets.service';
 
 enum ITEM_TYPE {
   IMAGE,
@@ -50,9 +50,9 @@ export class DeploymentsService {
     private pendingDeploymentModel: Model<PendingDeploymentDocument>,
     private resumesService: ResumesService,
     private templatesService: TemplatesService,
-    private readonly s3Service: S3Service,
     private readonly userService: UsersService,
     private readonly logger: Logger,
+    private readonly staticAssetsService: StaticAssetsService,
   ) {}
 
   /*Business logic functions*/
@@ -80,7 +80,7 @@ export class DeploymentsService {
   ): Promise<Deployment> {
     const user = await this.userService.getUser(authUser);
     await this.isValidRequest(createDeploymentDto, user);
-    await this.uploadArtifactsToS3(createDeploymentDto);
+    await this.saveArtifactsToStaticAssets(createDeploymentDto);
     const createdDeployment = new this.deploymentModel(createDeploymentDto);
     const template = await this.templatesService.findOne(
       createdDeployment.templateId,
@@ -153,9 +153,9 @@ export class DeploymentsService {
   }
 
   async cancelDeployment(id: string) {
-    const deployment = await this.deploymentModel.findOne({ _id: id }).exec();
+    const deployment = await this.deploymentModel.findOne({ id }).exec();
     const pendingDeployment = await this.pendingDeploymentModel
-      .findOne({ _id: id })
+      .findOne({ id })
       .exec();
     /*GeneratorService is responsible for cancelling deployments, it requires a pending deployment entry.
     Backfill the pending deployment if it goes missing for some reason*/
@@ -204,41 +204,53 @@ export class DeploymentsService {
     return deploymentsInRateLimitPeriod.length >= MAX_DEPLOYMENTS_IN_RATE_LIMIT;
   }
 
-  private async uploadArtifactsToS3(deploymentDto: CreateDeploymentDto) {
+  private async saveArtifactsToStaticAssets(
+    deploymentDto: CreateDeploymentDto,
+  ) {
     const userId = deploymentDto.userId;
     const profilePicture = deploymentDto.websiteDetails.profilePicture;
     const resumeDocument = deploymentDto.websiteDetails.resumeDocument;
     if (deploymentDto.websiteDetails.profilePicture) {
-      deploymentDto.websiteDetails.profilePictureS3URI =
-        await this.uploadItemToS3(profilePicture, userId, ITEM_TYPE.IMAGE);
+      deploymentDto.websiteDetails.profilePictureFile =
+        await this.saveItemToStaticAssets(
+          profilePicture,
+          userId,
+          ITEM_TYPE.IMAGE,
+        );
       deploymentDto.websiteDetails.profilePicture = null;
     }
     if (deploymentDto.websiteDetails.resumeDocument) {
-      deploymentDto.websiteDetails.resumeS3URI = await this.uploadItemToS3(
-        resumeDocument,
-        userId,
-        ITEM_TYPE.PDF,
-      );
+      deploymentDto.websiteDetails.resumeFile =
+        await this.saveItemToStaticAssets(
+          resumeDocument,
+          userId,
+          ITEM_TYPE.PDF,
+        );
       deploymentDto.websiteDetails.resumeDocument = null;
     }
   }
 
-  private async uploadItemToS3(
+  private saveItemToStaticAssets(
     item: string,
     userId: string,
     itemType: ITEM_TYPE,
-  ): Promise<string> {
+  ): string {
     try {
       if (itemType === ITEM_TYPE.IMAGE) {
-        return await this.s3Service.uploadImageToBucket(item, userId);
+        return this.staticAssetsService.saveProfilePictureToStaticAssets(
+          item,
+          userId,
+        );
       } else if (itemType === ITEM_TYPE.PDF) {
-        return await this.s3Service.uploadPDFToBucket(item, userId);
+        return this.staticAssetsService.saveResumeToStaticAssets(item, userId);
       } else {
-        throw new InternalServerErrorException('Unable to upload item to S3');
+        throw new InternalServerErrorException(
+          'Unable to save static asset, unknown type: ' + itemType,
+        );
       }
     } catch (err) {
-      this.logger.error('Error trying to upload artifact to S3', err);
-      throw new InternalServerErrorException('Unable to upload artifact to S3');
+      this.logger.error('Error trying to save static assets', err);
+      throw new InternalServerErrorException('Unable to save static assets');
     }
   }
 }

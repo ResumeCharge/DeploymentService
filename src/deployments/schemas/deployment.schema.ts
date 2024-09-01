@@ -36,8 +36,6 @@ export class Deployment {
   @Prop()
   cancellationRequested: boolean;
   @Prop()
-  cloudFrontInvalidationId: string;
-  @Prop()
   githubUserName: string;
 }
 

@@ -4,6 +4,6 @@ export interface IWebsiteDetails {
   extraConfigurationOptions?: Map<string, any>;
   profilePicture?: string;
   resumeDocument?: string;
-  resumeS3URI?: string;
-  profilePictureS3URI?: string;
+  resumeFile?: string;
+  profilePictureFile?: string;
 }

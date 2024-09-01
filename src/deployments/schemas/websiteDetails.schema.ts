@@ -13,9 +13,9 @@ export class WebsiteDetails {
   @Prop()
   resumeName: string;
   @Prop()
-  resumeS3URI: string;
+  resumeFile: string;
   @Prop()
-  profilePictureS3URI: string;
+  profilePictureFile: string;
   @Prop()
   websiteIdentifier: string;
   @Prop()

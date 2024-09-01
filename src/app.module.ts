@@ -12,9 +12,6 @@ import { RawBodyMiddleware } from './middleware/raw-body.middleware';
 import { ResumesModule } from './resumes/resumes.module';
 import { TemplatesModule } from './templates/templates.module';
 import { AuthModule } from './auth/auth.module';
-import { S3Service } from './s3-service/s3.service';
-
-import { S3Module } from './s3-service/s3.module';
 import { UsersModule } from './users/users.module';
 import { AppController } from './app.controller';
 
@@ -40,10 +37,8 @@ const ENV = process.env.NODE_ENV;
     ResumesModule,
     TemplatesModule,
     AuthModule,
-    S3Module,
     UsersModule,
   ],
-  providers: [S3Service],
   controllers: [AppController],
 })
 export class AppModule implements NestModule {

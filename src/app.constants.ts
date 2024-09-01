@@ -1,4 +1,5 @@
 export const PORT = 'PORT';
+export const STATIC_ASSETS_DIRECTORY = 'STATIC_ASSETS_DIRECTORY';
 export const USER_SERVICE_ENDPOINT = 'http://localhost/api/users';
 
 export const DEPLOYMENT_ERROR_CONCURRENT_DEPLOYMENT =
