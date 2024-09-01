@@ -21,7 +21,9 @@ async function bootstrap() {
   );
   app.setGlobalPrefix('api');
   app.enableCors();
-  app.useGlobalFilters(new HttpErrorFilter());
+  app.useGlobalFilters(
+    new HttpErrorFilter(app.get(WINSTON_MODULE_NEST_PROVIDER)),
+  );
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
