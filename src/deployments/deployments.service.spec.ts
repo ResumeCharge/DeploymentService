@@ -26,7 +26,6 @@ import { getModelToken } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import { TemplatesService } from '../templates/templates.service';
-import { S3Service } from '../s3-service/s3.service';
 import { UsersService } from '../users/users.service';
 import {
   CANCELLATION_REQUESTED,
@@ -38,6 +37,7 @@ import {
   SENT_TO_GITHUB,
   SUCCESSFUL,
 } from './deployment.status.constants';
+import { StaticAssetsService } from '../static-assets/static-assets.service';
 
 describe('DeploymentService', () => {
   let deploymentService: DeploymentsService;
@@ -64,7 +64,7 @@ describe('DeploymentService', () => {
         DeploymentsService,
         Logger,
         TemplatesService,
-        S3Service,
+        StaticAssetsService,
         ResumesService,
         UsersService,
         ConfigService,
@@ -219,8 +219,8 @@ describe('DeploymentService', () => {
       description: 'My Cool Website 3',
       profilePicture: 'http://link.com',
       resumeDocument: 'http://link2.com',
-      resumeS3URI: 'http://link3.com',
-      profilePictureS3URI: 'http://link4.com',
+      resumeFile: 'resume.pdf',
+      profilePictureFile: 'picture.jpeg',
     },
     resumeId: null,
     templateId: null,

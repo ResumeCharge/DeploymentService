@@ -8,7 +8,6 @@ import {
   Logger,
 } from '@nestjs/common';
 import { TemplatesService } from '../templates/templates.service';
-import { S3Service } from '../s3-service/s3.service';
 import { connect, Connection, Model } from 'mongoose';
 import { Deployment, DeploymentSchema } from './schemas/deployment.schema';
 import { getModelToken } from '@nestjs/mongoose';
@@ -38,12 +37,13 @@ import {
   PendingDeploymentSchema,
 } from './schemas/pendingDeployment.schema';
 import { User } from '../users/users.interfaces';
+import { StaticAssetsService } from '../static-assets/static-assets.service';
 
 describe('DeploymentsController', () => {
   let deploymentsController: DeploymentsController;
   let deploymentService: DeploymentsService;
   let httpService: HttpService;
-  let s3Service: S3Service;
+  let staticAssetsService: StaticAssetsService;
   let deploymentModel: Model<Deployment>;
   let websiteTemplateModel: Model<WebsiteTemplate>;
   let resumeModel: Model<Resume>;
@@ -71,7 +71,7 @@ describe('DeploymentsController', () => {
         DeploymentsService,
         Logger,
         TemplatesService,
-        S3Service,
+        StaticAssetsService,
         ResumesService,
         UsersService,
         ConfigService,
@@ -98,7 +98,8 @@ describe('DeploymentsController', () => {
       DeploymentsController,
     );
     userService = moduleRef.get<UsersService>(UsersService);
-    s3Service = moduleRef.get<S3Service>(S3Service);
+    staticAssetsService =
+      moduleRef.get<StaticAssetsService>(StaticAssetsService);
     configService = moduleRef.get<ConfigService>(ConfigService);
     httpService = moduleRef.get<HttpService>(HttpService);
     deploymentService = moduleRef.get<DeploymentsService>(DeploymentsService);
@@ -124,18 +125,20 @@ describe('DeploymentsController', () => {
       .spyOn(userService, 'getUser')
       .mockImplementation(async () => databaseUser);
     jest
-      .spyOn(s3Service, 'uploadPDFToBucket')
-      .mockImplementation(async () => 's3Uri');
-    jest.spyOn(s3Service, 'uploadImageToBucket').mockRejectedValue(() => {
-      throw new Error('BAD!');
-    });
+      .spyOn(staticAssetsService, 'saveResumeToStaticAssets')
+      .mockImplementation(() => 'resume.pdf');
+    jest
+      .spyOn(staticAssetsService, 'saveProfilePictureToStaticAssets')
+      .mockImplementation(() => {
+        throw new InternalServerErrorException('');
+      });
     jest
       .spyOn(deploymentService, 'userHasActiveDeployment')
       .mockImplementation(async () => false);
     await expect(
       deploymentsController.create({ userId: '123' }, newDeployment),
     ).rejects.toThrow(InternalServerErrorException);
-    expect(s3Service.uploadImageToBucket).toBeCalled();
+    expect(staticAssetsService.saveProfilePictureToStaticAssets).toBeCalled();
   });
 
   it('should throw an exception when it fails to upload the resume', async () => {
@@ -143,18 +146,20 @@ describe('DeploymentsController', () => {
       .spyOn(userService, 'getUser')
       .mockImplementation(async () => databaseUser);
     jest
-      .spyOn(s3Service, 'uploadImageToBucket')
-      .mockImplementation(async () => 's3Uri');
-    jest.spyOn(s3Service, 'uploadPDFToBucket').mockImplementation(() => {
-      throw new Error('BAD!');
-    });
+      .spyOn(staticAssetsService, 'saveProfilePictureToStaticAssets')
+      .mockImplementation(() => 'resume.pdf');
+    jest
+      .spyOn(staticAssetsService, 'saveResumeToStaticAssets')
+      .mockImplementation(() => {
+        throw new InternalServerErrorException('BAD!');
+      });
     jest
       .spyOn(deploymentService, 'userHasActiveDeployment')
       .mockImplementation(async () => false);
     await expect(
       deploymentsController.create({ userId: '123' }, newDeployment),
     ).rejects.toThrow(InternalServerErrorException);
-    expect(s3Service.uploadImageToBucket).toBeCalled();
+    expect(staticAssetsService.saveProfilePictureToStaticAssets).toBeCalled();
   });
 
   it('should find all deployments for a user', async () => {
@@ -219,11 +224,11 @@ describe('DeploymentsController', () => {
       .spyOn(userService, 'getUser')
       .mockImplementation(async () => databaseUser);
     jest
-      .spyOn(s3Service, 'uploadImageToBucket')
-      .mockImplementation(async () => 's3Uri');
+      .spyOn(staticAssetsService, 'saveResumeToStaticAssets')
+      .mockImplementation(() => 'resume.pdf');
     jest
-      .spyOn(s3Service, 'uploadPDFToBucket')
-      .mockImplementation(async () => 's3Uri');
+      .spyOn(staticAssetsService, 'saveProfilePictureToStaticAssets')
+      .mockImplementation(() => 'image.jpeg');
     jest
       .spyOn(userService, 'getUserOAuthToken')
       .mockImplementation(async () => 'token');
@@ -255,11 +260,11 @@ describe('DeploymentsController', () => {
       .spyOn(userService, 'getUser')
       .mockImplementation(async () => databaseUser);
     jest
-      .spyOn(s3Service, 'uploadImageToBucket')
-      .mockImplementation(async () => 's3Uri');
+      .spyOn(staticAssetsService, 'saveResumeToStaticAssets')
+      .mockImplementation(() => 'resume.pdf');
     jest
-      .spyOn(s3Service, 'uploadPDFToBucket')
-      .mockImplementation(async () => 's3Uri');
+      .spyOn(staticAssetsService, 'saveProfilePictureToStaticAssets')
+      .mockImplementation(() => 'image.jpeg');
     jest.spyOn(deploymentService, 'create').mockImplementation(async () => {
       throw new BadRequestException('');
     });
@@ -343,8 +348,8 @@ const newDeployment: CreateDeploymentDto = {
     description: 'My Cool Website 3',
     profilePicture: 'http://link.com',
     resumeDocument: 'http://link2.com',
-    resumeS3URI: 'http://link3.com',
-    profilePictureS3URI: 'http://link4.com',
+    resumeFile: 'resume.pdf',
+    profilePictureFile: 'image.jpeg',
   },
   resumeId: null,
   templateId: null,
