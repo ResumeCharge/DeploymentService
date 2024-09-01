@@ -8,9 +8,54 @@ import { HttpErrorFilter } from './middleware/HttpErrorFilter';
 import { initializeApp } from 'firebase-admin/app';
 import admin from 'firebase-admin';
 import * as bodyParser from 'body-parser';
+import {
+  utilities as nestWinstonModuleUtilities,
+  WinstonModule,
+} from 'nest-winston';
+import 'winston-daily-rotate-file';
+import * as winston from 'winston';
+
+const winstonConsoleOptions = {
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.ms(),
+    nestWinstonModuleUtilities.format.nestLike('UserService', {
+      colors: true,
+      prettyPrint: true,
+      processId: true,
+      appName: true,
+    }),
+  ),
+};
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+    bodyParser: false,
+    logger: WinstonModule.createLogger({
+      transports: [
+        new winston.transports.DailyRotateFile({
+          level: 'info',
+          filename: 'logs/application-%DATE%.log',
+          datePattern: 'YYYY-MM-DD-HH',
+          zippedArchive: true,
+          maxSize: '20m',
+          maxFiles: '14d',
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            winston.format.ms(),
+            nestWinstonModuleUtilities.format.nestLike('UserService', {
+              colors: false,
+              prettyPrint: true,
+              processId: true,
+              appName: true,
+            }),
+          ),
+        }),
+        new winston.transports.Console(winstonConsoleOptions),
+      ],
+    }),
+  });
   const configService = app.get<ConfigService>(ConfigService);
   app.useGlobalPipes(
     new ValidationPipe({
