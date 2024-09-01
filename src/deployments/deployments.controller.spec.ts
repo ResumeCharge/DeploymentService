@@ -10,24 +10,15 @@ import {
 import { TemplatesService } from '../templates/templates.service';
 import { S3Service } from '../s3-service/s3.service';
 import { connect, Connection, Model } from 'mongoose';
-import {
-  Deployment,
-  DeploymentDocument,
-  DeploymentSchema,
-} from './schemas/deployment.schema';
+import { Deployment, DeploymentSchema } from './schemas/deployment.schema';
 import { getModelToken } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { ResumesService } from '../resumes/resumes.service';
 import {
   WebsiteTemplate,
-  WebsiteTemplateDocument,
   WebsiteTemplateSchema,
 } from '../templates/schemas/websiteTemplate.schema';
-import {
-  Resume,
-  ResumeDocument,
-  ResumeSchema,
-} from '../resumes/schemas/resume.schema';
+import { Resume, ResumeSchema } from '../resumes/schemas/resume.schema';
 import { AuthUser } from '../auth/decorators/authorization.decorator';
 import { CreateDeploymentDto } from './dto/create-deployment.dto';
 import {
@@ -44,7 +35,6 @@ import { of } from 'rxjs';
 import { AxiosResponse } from 'axios';
 import {
   PendingDeployment,
-  PendingDeploymentDocument,
   PendingDeploymentSchema,
 } from './schemas/pendingDeployment.schema';
 import { User } from '../users/users.interfaces';
@@ -54,10 +44,10 @@ describe('DeploymentsController', () => {
   let deploymentService: DeploymentsService;
   let httpService: HttpService;
   let s3Service: S3Service;
-  let deploymentModel: Model<DeploymentDocument>;
-  let websiteTemplateModel: Model<WebsiteTemplateDocument>;
-  let resumeModel: Model<ResumeDocument>;
-  let pendingDeploymentModel: Model<PendingDeploymentDocument>;
+  let deploymentModel: Model<Deployment>;
+  let websiteTemplateModel: Model<WebsiteTemplate>;
+  let resumeModel: Model<Resume>;
+  let pendingDeploymentModel: Model<PendingDeployment>;
   let userService: UsersService;
   let mongoConnection: Connection;
   let configService: ConfigService;
@@ -143,10 +133,7 @@ describe('DeploymentsController', () => {
       .spyOn(deploymentService, 'userHasActiveDeployment')
       .mockImplementation(async () => false);
     await expect(
-      deploymentsController.create(
-        { userId: '123', token: '123' },
-        newDeployment,
-      ),
+      deploymentsController.create({ userId: '123' }, newDeployment),
     ).rejects.toThrow(InternalServerErrorException);
     expect(s3Service.uploadImageToBucket).toBeCalled();
   });
@@ -165,10 +152,7 @@ describe('DeploymentsController', () => {
       .spyOn(deploymentService, 'userHasActiveDeployment')
       .mockImplementation(async () => false);
     await expect(
-      deploymentsController.create(
-        { userId: '123', token: '123' },
-        newDeployment,
-      ),
+      deploymentsController.create({ userId: '123' }, newDeployment),
     ).rejects.toThrow(InternalServerErrorException);
     expect(s3Service.uploadImageToBucket).toBeCalled();
   });
@@ -198,7 +182,7 @@ describe('DeploymentsController', () => {
     const allDeployments = await deploymentsController.findAllOrdersForUserId(
       authUser.userId,
     );
-    const deploymentId = allDeployments[0]._id;
+    const deploymentId = allDeployments[0].id;
     const deployment = await deploymentsController.findOne(deploymentId);
     expect(deployment).not.toBeNull();
   });
@@ -219,8 +203,8 @@ describe('DeploymentsController', () => {
     const templates = await websiteTemplateModel.find().exec();
     const deployment: CreateDeploymentDto = {
       ...newDeployment,
-      resumeId: resumes[0]._id,
-      templateId: templates[0]._id,
+      resumeId: resumes[0].id,
+      templateId: templates[0].id,
     };
     await deploymentModel.deleteMany().exec();
     const data = ['test'];
@@ -257,26 +241,12 @@ describe('DeploymentsController', () => {
     expect(createdDeployment.deploymentProvider).toBe('GITHUB');
   });
 
-  it('should throw an exception when an invalid create request is received', async () => {
-    const user = { ...databaseUser };
-    user.userId = '1234';
-    jest.spyOn(userService, 'getUser').mockImplementation(async () => user);
-    await expect(
-      deploymentsController.create(
-        { userId: '1234', token: '1234' },
-        newDeployment,
-      ),
-    ).rejects.toThrow(BadRequestException);
-  });
   it('should throw an exception if we cant find a user', async () => {
     jest.spyOn(userService, 'getUser').mockRejectedValue(() => {
       throw new Error('BAD!');
     });
     await expect(
-      deploymentsController.create(
-        { userId: '123', token: '123' },
-        newDeployment,
-      ),
+      deploymentsController.create({ userId: '123' }, newDeployment),
     ).rejects.toThrow(Error);
   });
 
@@ -294,10 +264,7 @@ describe('DeploymentsController', () => {
       throw new BadRequestException('');
     });
     await expect(
-      deploymentsController.create(
-        { userId: '123', token: '123' },
-        newDeployment,
-      ),
+      deploymentsController.create({ userId: '123' }, newDeployment),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -305,7 +272,7 @@ describe('DeploymentsController', () => {
     const allDeployments = await deploymentsController.findAllOrdersForUserId(
       authUser.userId,
     );
-    const deploymentId = allDeployments[0]._id;
+    const deploymentId = allDeployments[0].id;
     const deployment = await deploymentsController.findOne(deploymentId);
     expect(deployment).not.toBeNull();
     expect(deployment.status).toBe(PENDING);
@@ -316,7 +283,7 @@ describe('DeploymentsController', () => {
       const allDeployments = await deploymentsController.findAllOrdersForUserId(
         authUser.userId,
       );
-      const deploymentId = allDeployments[0]._id;
+      const deploymentId = allDeployments[0].id;
       await deploymentsController.remove(deploymentId);
       const deployment = await deploymentsController.findOne(deploymentId);
       expect(deployment).toBeNull();
@@ -327,7 +294,7 @@ describe('DeploymentsController', () => {
     const allDeployments = await deploymentsController.findAllOrdersForUserId(
       authUser.userId,
     );
-    const deploymentId = allDeployments[0]._id;
+    const deploymentId = allDeployments[0].id;
     let deployment = await deploymentsController.findOne(deploymentId);
     expect(deployment).not.toBeNull();
     await deploymentsController.cancel(deploymentId);
@@ -346,7 +313,7 @@ describe('DeploymentsController', () => {
     jest
       .spyOn(userService, 'getUserGithubName')
       .mockImplementation(async () => '');
-    const deploymentId = allDeployments[2]._id;
+    const deploymentId = allDeployments[2].id;
     let deployment = await deploymentsController.findOne(deploymentId);
     expect(deployment).not.toBeNull();
     deployment.status = 'PROCESSING';
@@ -360,17 +327,13 @@ describe('DeploymentsController', () => {
       .spyOn(userService, 'getUser')
       .mockImplementation(async () => databaseUser);
     await expect(
-      deploymentsController.create(
-        { userId: '123', token: '123' },
-        newDeployment,
-      ),
+      deploymentsController.create({ userId: '123' }, newDeployment),
     ).rejects.toThrow(BadRequestException);
   });
 });
 
 const authUser: AuthUser = {
   userId: '123',
-  token: '123',
 };
 
 const newDeployment: CreateDeploymentDto = {

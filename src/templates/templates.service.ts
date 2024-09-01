@@ -6,6 +6,7 @@ import {
   WebsiteTemplate,
   WebsiteTemplateDocument,
 } from './schemas/websiteTemplate.schema';
+import { templatesSeedData } from './seed/templates-seed-data';
 
 @Injectable()
 export class TemplatesService {
@@ -33,5 +34,20 @@ export class TemplatesService {
 
   remove(id: string) {
     return `This action removes a #${id} template`;
+  }
+
+  // Create the standalone user if they don't exist
+  async onModuleInit(): Promise<void> {
+    await this.seedTemplates();
+  }
+
+  async seedTemplates() {
+    const dbTemplates = await this.websiteTemplateModel.find();
+    const missingTemplates = templatesSeedData.filter((template) => {
+      return !dbTemplates.some((dbTemplate) => dbTemplate._id === template._id);
+    });
+    for (const missingTemplate of missingTemplates) {
+      await this.websiteTemplateModel.create(missingTemplate);
+    }
   }
 }

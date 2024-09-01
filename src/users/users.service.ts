@@ -18,7 +18,6 @@ export class UsersService {
     const httpService = new HttpService();
     const getUserResponse = await firstValueFrom(
       httpService.get(`${USER_SERVICE_ENDPOINT}/${authUser.userId}`, {
-        headers: { Authorization: `Bearer ${authUser.token}` },
         method: 'GET',
       }),
     );
@@ -51,7 +50,6 @@ export class UsersService {
     const httpService = new HttpService();
     const getUserResponse = await firstValueFrom(
       httpService.get(`${USER_SERVICE_ENDPOINT}/${authUser.userId}/token`, {
-        headers: { Authorization: `Bearer ${authUser.token}` },
         method: 'GET',
       }),
     );
@@ -72,7 +70,6 @@ export class UsersService {
       httpService.get(
         `${USER_SERVICE_ENDPOINT}/${authUser.userId}/githubUsername`,
         {
-          headers: { Authorization: `Bearer ${authUser.token}` },
           method: 'GET',
         },
       ),

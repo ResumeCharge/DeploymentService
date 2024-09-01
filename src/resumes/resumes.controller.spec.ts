@@ -2,7 +2,7 @@ import { ResumesController } from './resumes.controller';
 import { ResumesService } from './resumes.service';
 import { Test } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
-import { Resume, ResumeDocument, ResumeSchema } from './schemas/resume.schema';
+import { Resume, ResumeSchema } from './schemas/resume.schema';
 import { connect, Connection, Model } from 'mongoose';
 import { HttpModule } from '@nestjs/axios';
 import {
@@ -18,7 +18,7 @@ import { Logger, NotFoundException } from '@nestjs/common';
 
 describe('ResumesController', () => {
   let resumesController: ResumesController;
-  let resumeModel: Model<ResumeDocument>;
+  let resumeModel: Model<Resume>;
   let mongoConnection: Connection;
   const usersService = {};
 
@@ -81,7 +81,7 @@ describe('ResumesController', () => {
       nickname: 'my-cool-resume',
     };
     const updatedResume = await resumesController.update(
-      resumes[0]._id,
+      resumes[0].id,
       updateResumeDto,
     );
     expect(updatedResume.nickname).toEqual('my-cool-resume');
@@ -95,7 +95,7 @@ describe('ResumesController', () => {
       userId: 'not-my-id',
     };
     const updatedResume = await resumesController.update(
-      resumes[0]._id,
+      resumes[0].id,
       updateResumeDto,
     );
     expect(updatedResume.nickname).toEqual('my-cool-resume');
@@ -104,16 +104,16 @@ describe('ResumesController', () => {
 
   it('should delete a resume', async () => {
     const resumes = await resumeModel.find().exec();
-    await resumesController.remove(resumes[0]._id);
-    await expect(resumesController.findOne(resumes[0]._id)).rejects.toThrow(
+    await resumesController.remove(resumes[0].id);
+    await expect(resumesController.findOne(resumes[0].id)).rejects.toThrow(
       NotFoundException,
     );
   });
 
   it('should throw an exception trying to delete a resume that does not exist', async () => {
     const resumes = await resumeModel.find().exec();
-    await resumesController.remove(resumes[0]._id);
-    await expect(resumesController.remove(resumes[0]._id)).rejects.toThrow(
+    await resumesController.remove(resumes[0].id);
+    await expect(resumesController.remove(resumes[0].id)).rejects.toThrow(
       NotFoundException,
     );
   });

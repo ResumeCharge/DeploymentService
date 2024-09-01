@@ -5,8 +5,6 @@ import { ConfigService } from '@nestjs/config';
 import { PORT } from './app.constants';
 import { useContainer } from 'class-validator';
 import { HttpErrorFilter } from './middleware/HttpErrorFilter';
-import { initializeApp } from 'firebase-admin/app';
-import admin from 'firebase-admin';
 import * as bodyParser from 'body-parser';
 import {
   utilities as nestWinstonModuleUtilities,
@@ -69,10 +67,7 @@ async function bootstrap() {
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 
-  initializeApp({
-    credential: admin.credential.applicationDefault(),
-  });
-
   await app.listen(configService.get(PORT));
 }
+
 bootstrap();

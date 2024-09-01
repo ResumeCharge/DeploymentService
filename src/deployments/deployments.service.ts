@@ -30,11 +30,7 @@ import { AuthUser } from '../auth/decorators/authorization.decorator';
 import { UsersService } from '../users/users.service';
 import {
   DEPLOYMENT_ERROR_CONCURRENT_DEPLOYMENT,
-  DEPLOYMENT_ERROR_DEPLOYMENT_ID_USER_ID_DO_NOT_MATCH,
   DEPLOYMENT_ERROR_NOT_GITHUB_USERNAME,
-  DEPLOYMENT_ERROR_RATE_LIMIT,
-  DEPLOYMENT_ERROR_USER_INACTIVE,
-  DEPLOYMENT_ERROR_WEBSITE_IDENTIFIER_MISSING,
 } from '../app.constants';
 
 enum ITEM_TYPE {
@@ -44,7 +40,6 @@ enum ITEM_TYPE {
 
 const RATE_LIMIT_PERIOD_DAYS = 1;
 export const MAX_DEPLOYMENTS_IN_RATE_LIMIT = 10;
-
 
 @Injectable()
 export class DeploymentsService {
@@ -183,27 +178,9 @@ export class DeploymentsService {
   ) => {
     const deploymentProvider =
       createDeploymentDTO.deploymentProvider.toLowerCase();
-    if (createDeploymentDTO.userId !== user.userId) {
-      throw new BadRequestException(
-        DEPLOYMENT_ERROR_DEPLOYMENT_ID_USER_ID_DO_NOT_MATCH,
-      );
-    }
-    if (!user.isActive) {
-      throw new BadRequestException(DEPLOYMENT_ERROR_USER_INACTIVE);
-    }
-    if (deploymentProvider === 'aws' && !user.websiteIdentifier) {
-      this.logger.error(
-        'User does not have websiteIdentifier set, unable to proceed with deployment',
-      );
-      throw new BadRequestException(
-        DEPLOYMENT_ERROR_WEBSITE_IDENTIFIER_MISSING,
-      );
-    }
+
     if (await this.userHasActiveDeployment(user.userId)) {
       throw new BadRequestException(DEPLOYMENT_ERROR_CONCURRENT_DEPLOYMENT);
-    }
-    if (await this.userHasExceededDeploymentRateLimit(user.userId)) {
-      throw new BadRequestException(DEPLOYMENT_ERROR_RATE_LIMIT);
     }
     if (deploymentProvider === 'github' && !user.githubUserName) {
       throw new BadRequestException(DEPLOYMENT_ERROR_NOT_GITHUB_USERNAME);
@@ -226,6 +203,7 @@ export class DeploymentsService {
       .exec();
     return deploymentsInRateLimitPeriod.length >= MAX_DEPLOYMENTS_IN_RATE_LIMIT;
   }
+
   private async uploadArtifactsToS3(deploymentDto: CreateDeploymentDto) {
     const userId = deploymentDto.userId;
     const profilePicture = deploymentDto.websiteDetails.profilePicture;
