@@ -1,5 +1,4 @@
 import { firstValueFrom } from 'rxjs';
-import { USER_SERVICE_ENDPOINT } from '../app.constants';
 import {
   Inject,
   Injectable,
@@ -10,19 +9,22 @@ import { HttpService } from '@nestjs/axios';
 import { AuthUser } from '../auth/decorators/authorization.decorator';
 import { User } from './users.interfaces';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { ConfigService } from '@nestjs/config';
+import { USER_SERVICE_HOST } from '../app.constants';
 
 @Injectable()
 export class UsersService {
   constructor(
     @Inject(WINSTON_MODULE_NEST_PROVIDER)
     private readonly logger: LoggerService,
+    private readonly configService: ConfigService,
   ) {}
 
   getUser = async (authUser: AuthUser): Promise<User> => {
     this.logger.log(`Attempting to getUser with Id: ${authUser.userId}`);
     const httpService = new HttpService();
     const getUserResponse = await firstValueFrom(
-      httpService.get(`${USER_SERVICE_ENDPOINT}/${authUser.userId}`, {
+      httpService.get(`${this.getUserServiceEndpoint()}/${authUser.userId}`, {
         method: 'GET',
       }),
     );
@@ -54,9 +56,12 @@ export class UsersService {
     );
     const httpService = new HttpService();
     const getUserResponse = await firstValueFrom(
-      httpService.get(`${USER_SERVICE_ENDPOINT}/${authUser.userId}/token`, {
-        method: 'GET',
-      }),
+      httpService.get(
+        `${this.getUserServiceEndpoint()}/${authUser.userId}/token`,
+        {
+          method: 'GET',
+        },
+      ),
     );
     if (getUserResponse.status !== 200) {
       this.logger.error(
@@ -73,7 +78,7 @@ export class UsersService {
     const httpService = new HttpService();
     const getUserResponse = await firstValueFrom(
       httpService.get(
-        `${USER_SERVICE_ENDPOINT}/${authUser.userId}/githubUsername`,
+        `${this.getUserServiceEndpoint()}/${authUser.userId}/githubUsername`,
         {
           method: 'GET',
         },
@@ -88,5 +93,13 @@ export class UsersService {
       throw new InternalServerErrorException(getUserResponse.status);
     }
     return getUserResponse.data;
+  };
+
+  getUserServiceEndpoint = () => {
+    const userServiceHost = this.configService.get(
+      USER_SERVICE_HOST,
+      'localhost',
+    );
+    return `http://${userServiceHost}/api/users`;
   };
 }

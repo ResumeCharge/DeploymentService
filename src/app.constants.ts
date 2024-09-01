@@ -1,6 +1,6 @@
 export const PORT = 'PORT';
+export const USER_SERVICE_HOST = 'USER_SERVICE_HOST';
 export const STATIC_ASSETS_DIRECTORY = 'STATIC_ASSETS_DIRECTORY';
-export const USER_SERVICE_ENDPOINT = 'http://localhost/api/users';
 
 export const DEPLOYMENT_ERROR_CONCURRENT_DEPLOYMENT =
   'DEPLOYMENT_ERROR_1: another deployment is already in progress';
