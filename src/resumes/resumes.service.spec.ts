@@ -18,7 +18,7 @@ import {
 describe('ResumesService', () => {
   let mongoConnection: Connection;
   let service: ResumesService;
-  let model: Model<ResumeDocument>;
+  let model: Model<Resume>;
   const usersService = {
     getUser: jest.fn(),
   };
@@ -62,7 +62,7 @@ describe('ResumesService', () => {
 
   it('should return true if a resume exists', async () => {
     const resume = await model.findOne({ userId: '123' }).exec();
-    const result = await service.doesResumeExist(resume._id);
+    const result = await service.doesResumeExist(resume.id);
     expect(result).toEqual(true);
   });
 
