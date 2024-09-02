@@ -5,7 +5,7 @@ import {
   Logger,
   LoggerService,
 } from '@nestjs/common';
-import { STATIC_ASSETS_DIRECTORY } from '../app.constants';
+import { USER_WEBSITE_ASSETS_LOCATION } from '../app.constants';
 import fs from 'fs';
 import { ConfigService } from '@nestjs/config';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
@@ -33,20 +33,20 @@ export class StaticAssetsService {
   }
 
   saveFileToStaticAssets(fileName: string, data: string) {
-    const staticAssetsDirectory = this.configService.get(
-      STATIC_ASSETS_DIRECTORY,
+    const userWebsiteAssetsLocation = this.configService.get(
+      USER_WEBSITE_ASSETS_LOCATION,
     );
-    if (!staticAssetsDirectory) {
+    if (!userWebsiteAssetsLocation) {
       throw new InternalServerErrorException(
         'Unable to save static assets, STATIC_ASSETS_DIRECTORY is not configured',
       );
     }
-    if (!fs.existsSync(staticAssetsDirectory)) {
+    if (!fs.existsSync(userWebsiteAssetsLocation)) {
       throw new InternalServerErrorException(
         'Unable to save static assets, directory does not exist',
       );
     }
-    const filePath = `${staticAssetsDirectory}/${fileName}`;
+    const filePath = `${userWebsiteAssetsLocation}/${fileName}`;
     const base64Data = Buffer.from(
       data.replace(this.BASE_64_REGEX, ''),
       'base64',
